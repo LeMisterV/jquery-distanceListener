@@ -32,38 +32,59 @@
 	DistanceListener = function(elem, options) {
 		var $elem = $(elem),
 		$this = $elem.data('DistanceListener'),
-		center = {},
+		infos = {},
 		dist,
 
 		checkInterval,
-		refreshCenterInterval,
+		refreshInfosInterval,
 
-		refreshCenter = function() {
-			var offset = $elem.offset();
-			center.X = offset.left + ($elem.outerWidth() / 2);
-			center.Y = offset.top + ($elem.outerHeight() / 2);
+		refreshInfos = function() {
+			infos = $elem.offset();
+			infos.width = $elem.outerWidth();
+			infos.height = $elem.outerHeight();
+			infos.right = infos.left + infos.width;
+			infos.bottom = infos.top + infos.height;
 		},
 
 		checkDistance = function() {
-			var offset = $elem.offset();
-			offset.right = offset.left + $elem.outerWidth();
-			offset.bottom = offset.top + $elem.outerHeight();
-			distanceX = (pos.X < offset.left) ?
-				distanceX = offset.left - pos.X :
-				(pos.X > offset.right) ?
-					distanceX = pos.X - offset.right :
-					0;
-			distanceY = (pos.Y < offset.top) ?
-				offset.top - pos.Y :
-				(pos.Y > offset.bottom) ?
-					pos.Y - offset.bottom :
-					0;
+			var newDist, newDistR, distanceX, distanceY, Xneg, Yneg, distanceXR, distanceYR;
 
-			var newDist = parseInt(Math.sqrt( Math.pow(distanceX, 2) + Math.pow(distanceY, 2)));
+			distanceX = Math.max( infos.left - pos.X, pos.X - infos.right );
+			distanceY = Math.max( infos.top - pos.Y, pos.Y - infos.bottom );
+
+			distanceXR = distanceX / infos.width;
+			distanceYR = distanceY / infos.height;
+
+			Xneg = distanceX <= 0;
+			Yneg = distanceY <= 0;
+
+			if(Xneg && Yneg) {
+				newDist = Math.max(
+							distanceX,
+							distanceY
+						);
+				newDistR = Math.max(
+							distanceXR,
+							distanceYR
+						);
+			}
+			else {
+				newDist = parseInt(Math.sqrt( Math.pow(Xneg ? 0 : distanceX, 2) + Math.pow(Yneg ? 0 : distanceY, 2)));
+				if(!Xneg) {
+					newDistR = newDist / (infos.width + ( ((infos.height - infos.width) * Math.acos(distanceX / newDist) * 2) / Math.PI));
+				}
+				else {
+					newDistR = newDist / infos.height;
+				}
+			}
+
+			newDist = parseInt(newDist);
+			newDistR = parseInt(newDistR * 100);
 
 			if(!isNaN(dist) && !isNaN(newDist) && newDist !== dist) {
 				event.type = (dist > newDist) ? 'mouseapproach' : 'mouseretreat';
 				event.distance = newDist;
+				event.distanceR = newDistR;
 				$.event.handle.call(elem, event);
 			}
 			dist = newDist;
@@ -71,21 +92,23 @@
 
 		reload = function() {
 			window.clearInterval(checkInterval);
-			window.clearInterval(refreshCenterInterval);
+			window.clearInterval(refreshInfosInterval);
 			checkInterval = window.setInterval(checkDistance, options.checkInterval);
-			refreshCenterInterval = window.setInterval(refreshCenter, options.refreshCenterInterval);
+			if(options.refreshInfosInterval > 0) {
+				refreshInfosInterval = window.setInterval(refreshInfos, options.refreshInfosInterval);
+			}
 		},
 
 		init = function() {
 			options = $.extend({
 				checkInterval			: 50,
-				refreshCenterInterval	: 200
+				refreshInfosInterval	: 0
 			}, options);
 
 			$elem
 				.data('DistanceListener', this);
 
-			refreshCenter();
+			refreshInfos();
 			followMouseMove();
 			reload();
 		};
@@ -101,7 +124,7 @@
 
 		this.unbind = function() {
 			window.clearInterval(checkInterval);
-			window.clearInterval(refreshCenterInterval);
+			window.clearInterval(refreshInfosInterval);
 			$elem.removeData('DistanceListener');
 		};
 
