@@ -45,7 +45,22 @@
 		},
 
 		checkDistance = function() {
-			var newDist = parseInt(Math.sqrt( Math.pow(center.X - pos.X, 2) + Math.pow(center.Y - pos.Y, 2)));
+			var offset = $elem.offset();
+			offset.right = offset.left + $elem.outerWidth();
+			offset.bottom = offset.top + $elem.outerHeight();
+			distanceX = (pos.X < offset.left) ?
+				distanceX = offset.left - pos.X :
+				(pos.X > offset.right) ?
+					distanceX = pos.X - offset.right :
+					0;
+			distanceY = (pos.Y < offset.top) ?
+				offset.top - pos.Y :
+				(pos.Y > offset.bottom) ?
+					pos.Y - offset.bottom :
+					0;
+
+			var newDist = parseInt(Math.sqrt( Math.pow(distanceX, 2) + Math.pow(distanceY, 2)));
+
 			if(!isNaN(dist) && !isNaN(newDist) && newDist !== dist) {
 				event.type = (dist > newDist) ? 'mouseapproach' : 'mouseretreat';
 				event.distance = newDist;
