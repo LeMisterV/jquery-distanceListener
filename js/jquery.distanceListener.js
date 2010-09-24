@@ -138,7 +138,10 @@
                 });
         },
         teardown: function() {
-            $(this).data('DistanceListener').unbind();
+            var instance = $(this).data('DistanceListener');
+            if (instance) {
+                instance.unbind();
+            }
         }
     };
 
